@@ -7,6 +7,7 @@
 
 package frc.robot.commands.auto;
 
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.command.Command;
 import frc.robot.NumberConstants;
 import frc.robot.Robot;
@@ -15,29 +16,40 @@ import frc.robot.Robot;
  * An example command. You can replace me with your own command.
  */
 public class AutoDrive extends Command {
-    double speed, turn;
-    public AutoDrive(double speed, double turn) {
+    double speed, turn, time;
+    Timer timer;
+    boolean finished;
+    public AutoDrive(double speed, double turn, double time) {
         // Use requires() here to declare subsystem dependencies
         requires(Robot.driveTrain);
         this.speed = speed;
         this.turn = turn;
+        this.time = time;
+        timer = new Timer();
+        finished = false;
     }
 
     // Called just before this Command runs the first time
     @Override
     protected void initialize() {
+        timer.start();
     }
 
     // Called repeatedly when this Command is scheduled to run
     @Override
     protected void execute() {
+
         Robot.driveTrain.drive(speed, turn, true);
+        if (timer.get()>time) {
+            Robot.driveTrain.stop();
+            finished = true;
+        }
     }
 
     // Make this return true when this Command no longer needs to run execute()
     @Override
     protected boolean isFinished() {
-        return false;
+        return finished;
     }
 
     // Called once after isFinished returns true

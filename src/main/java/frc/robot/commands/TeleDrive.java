@@ -53,7 +53,7 @@ public class TeleDrive extends Command {
     requires(Robot.driveTrain);
     driveBack = new Timer();
     auto = false;
-    driveBackTime = 0.5;
+    driveBackTime = NumberConstants.DRIVEBACK_TIME;
   }
 
   // Called just before this Command runs the first time
@@ -71,7 +71,6 @@ public class TeleDrive extends Command {
     }
     if (OI.XBoxControllerSubsystem.getRawButtonPressed(RobotMap.CLOSE_SHOOT_BUTTON)) {
       driveBack.start();
-      Robot.driveTrain.drive(0.5, 0.0, true);
       auto = true;
     }
   //TELEOP STUFF
@@ -131,8 +130,10 @@ public class TeleDrive extends Command {
     if (auto==false) {
       double speed = (OI.XBoxControllerDriver.getTriggerAxis(Hand.kRight) - OI.XBoxControllerDriver.getTriggerAxis(Hand.kLeft)) / slowMod;
       double turn = OI.XBoxControllerDriver.getX(Hand.kLeft) / slowMod;
-      Robot.driveTrain.drive(speed, turn, true);
+      Robot.driveTrain.drive(-speed, turn, true);//inverted controls
       SmartDashboard.putNumber("Speed %", Math.abs(speed)*100);
+    } else {
+      Robot.driveTrain.drive(0.5, 0.0, true);
     }
   }
 

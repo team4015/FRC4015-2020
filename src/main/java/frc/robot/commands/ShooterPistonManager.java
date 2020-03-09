@@ -31,9 +31,10 @@ public class ShooterPistonManager extends Command {
   // Called repeatedly when this Command is scheduled to run
   @Override
   protected void execute() {
-    if (OI.XBoxControllerSubsystem.getRawButtonPressed(RobotMap.FAR_SHOOT_BUTTON)) {
+    if (OI.XBoxControllerSubsystem.getRawButton(RobotMap.FAR_SHOOT_BUTTON)) {
       Robot.shooterPistonSubsystem.extendShooter();
-    } else if (OI.XBoxControllerSubsystem.getRawButtonPressed(RobotMap.CLOSE_SHOOT_BUTTON)) {
+    } 
+    if (OI.XBoxControllerSubsystem.getRawButton(RobotMap.CLOSE_SHOOT_BUTTON)) {
       Robot.shooterPistonSubsystem.retractShooter();
     } 
 

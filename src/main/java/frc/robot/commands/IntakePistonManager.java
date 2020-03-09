@@ -34,9 +34,9 @@ public class IntakePistonManager extends Command {
   // Called repeatedly when this Command is scheduled to run
   @Override
   protected void execute() {
-    if (Robot.conveyorSubsystem.balls>4) {
-      Robot.intakePistonSubsystem.retractIntake();
-    }
+    // if (Robot.conveyorSubsystem.balls>4) {
+    //   Robot.intakePistonSubsystem.retractIntake();
+    // }
     if (OI.XBoxControllerSubsystem.getRawButtonPressed(RobotMap.TOGGLE_INTAKE_BUTTON)) {
       if (Robot.intakePistonSubsystem.getIntakeExtended()) {
         Robot.intakePistonSubsystem.retractIntake();

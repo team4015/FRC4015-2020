@@ -45,11 +45,11 @@ public class ConveyorSubsystem extends Subsystem {
       shootTimer = new Timer();
       balls = 0;
       topBalls = 0;
-      timeLimit = 0.3;
-      shootDelay = 0.45;//tuneeeeeeeeeeeeeeeeeeeeeeeeeee 0.35
+      timeLimit = NumberConstants.AUTOCONVEY_TIME;
+      shootDelay = NumberConstants.SHOOTER_DELAY_BETWEEN_BALLS;
     }
     public void autoConvey() {
-      if (pressed1()) {
+      if (pressed1()&&(balls==0||timer.get()<0.2)) {
         balls++;
         System.out.println("BALLS "+balls);
         if (balls<5) {
@@ -70,7 +70,7 @@ public class ConveyorSubsystem extends Subsystem {
         //   timeLimit+=0.1;
         // }
       }
-      if (pressedTop()) {
+      if (pressedTop()&&balls>3) {
         topBalls++;
         System.out.println("****TOP STOPPED****");
         balls = 4;

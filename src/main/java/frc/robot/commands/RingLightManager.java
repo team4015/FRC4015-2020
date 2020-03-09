@@ -28,17 +28,17 @@ public class RingLightManager extends Command {
   // Called just before this Command runs the first time
   @Override
   protected void initialize() {
-    Robot.ringLightSubsystem.off();
+    Robot.ringLightSubsystem.on();
   }
 
   // Called repeatedly when this Command is scheduled to run
   @Override
   protected void execute() {
-      if (OI.XBoxControllerSubsystem.getRawButton(RobotMap.FAR_SHOOT_BUTTON)) {
-        Robot.ringLightSubsystem.on();
-      } else {
-        Robot.ringLightSubsystem.off();
-      }
+      // if (OI.XBoxControllerDriver.getYButton()) {
+      //   Robot.ringLightSubsystem.on();
+      // } else {
+      //   Robot.ringLightSubsystem.off();
+      // }
       // if (OI.XBoxControllerDriver.getYButtonPressed()) {
       //     Robot.ringLightSubsystem.off();
       //     delay.start();

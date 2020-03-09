@@ -24,6 +24,7 @@ import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.vision.VisionThread;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.SpeedControllerGroup;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.command.Command;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
@@ -40,13 +41,21 @@ public class AutoAlign extends Command {
   private VisionThread visionThread;
   private double centerX = 0.0;
   private double height = 0.0;
-  private double targetHeight = 20.0;
+  private double targetHeight = 21.0;
   private double driveSpeed = 0.0;
   private double turnSpeed = 0.0;
+  double angleKp = 0.85;  
+  double distanceKp = 0.1;
+  double angleTolerance = 0.09;
+  double distanceTolerance = 1;
   private final Object imgLock = new Object();
   CvSink cvSink = new CvSink("opencv_USB Camera 0");
   CvSource outputStream = CameraServer.getInstance().putVideo("Vision Stream", NumberConstants.IMG_WIDTH, NumberConstants.IMG_HEIGHT);
   boolean run = false;
+
+  Timer driveBack;
+  boolean auto;
+  double driveBackTime;
   enum DriveMode {
     FAST,
     MEDIUM,
@@ -57,7 +66,9 @@ public class AutoAlign extends Command {
   public AutoAlign() {
     // Use requires() here to declare subsystem dependencies
     requires(Robot.driveTrain);
-
+    driveBack = new Timer();
+    auto = false;
+    driveBackTime = NumberConstants.DRIVEBACK_TIME;
   }
 
   // Called just before this Command runs the first time    
@@ -95,55 +106,131 @@ public class AutoAlign extends Command {
   // Called repeatedly when this Command is scheduled to run
   @Override
   protected void execute() {
+    if(OI.XBoxControllerDriver.getAButtonPressed()) { // A Slows OI.JoyStickRight.getRawButtonPressed(3) || 
+      switch(driveMode) {
+      case MEDIUM:
+        driveMode = DriveMode.FAST;
+        break;
+      case SLOW:
+        driveMode = DriveMode.MEDIUM;
+        break;
+      case SUPERSLOW:
+        driveMode = DriveMode.SLOW;
+        break;
+    default:
+      break;
+      }
+    }
+    if(OI.XBoxControllerDriver.getBButtonPressed()) { // B speeds OI.JoyStickRight.getRawButtonPressed(4) || 
+      switch(driveMode) {
+      case SLOW:
+        driveMode = DriveMode.SUPERSLOW;
+        break;
+      case MEDIUM:
+        driveMode = DriveMode.SLOW;
+        break;
+      case FAST:
+        driveMode = DriveMode.MEDIUM;
+        break;
+    default:
+      break;
+      }
+    }
+    double slowMod;
+      switch(driveMode) {
+        case FAST:
+          slowMod = 1;
+          SmartDashboard.putString("Mode:", "FAST");
+          break;
+        case MEDIUM:
+          slowMod = Math.sqrt(NumberConstants.SLOWING_CONSTANT);
+          SmartDashboard.putString("Mode:", "MEDIUM");
+          break;
+        case SLOW:
+          slowMod = NumberConstants.SLOWING_CONSTANT;
+          SmartDashboard.putString("Mode:", "SLOW");
+          break;
+        case SUPERSLOW:
+          slowMod = NumberConstants.SLOWING_CONSTANT*1.5;
+          SmartDashboard.putString("Mode:", "SUPERSLOW");
+          break;
+        default:
+          slowMod = 1;
+          SmartDashboard.putString("Mode:", "FAST");
+      }
   //VISION STUFF
   double centerX,height;
     synchronized (imgLock) {
-        // x1 = (this.x1-NumberConstants.IMG_WIDTH/2)/(NumberConstants.IMG_WIDTH/2);
-        // x2 = (this.x2-NumberConstants.IMG_WIDTH/2)/(NumberConstants.IMG_WIDTH/2);
         centerX = (this.centerX-NumberConstants.IMG_WIDTH/2)/(NumberConstants.IMG_WIDTH/2);
         height = this.height;
     }
     double distance = targetHeight-height;
     System.out.println("CENTER: "+centerX+" HEIGHT: "+height);
-  if (OI.XBoxControllerDriver.getYButtonPressed()) {
+  if (OI.XBoxControllerDriver.getYButton()) {
     run = true;
-  } else if (OI.XBoxControllerDriver.getXButtonPressed()) {
+  } else {
       run = false;
   }
   if (run==true) {
-      if (Math.abs(centerX)>0.01) {
-        //   turnSpeed = centerX*0.24;
-        if(centerX<0) {
-            turnSpeed = -0.3;
-        } else {
-            turnSpeed = 0.3;
-        }
+      //Angle P control loop
+      if (Math.abs(centerX)>angleTolerance) {
+          turnSpeed = centerX*angleKp;
+        // if(centerX<0) {
+        //     turnSpeed = -0.3;
+        // } else {
+        //     turnSpeed = 0.3;
+        // }
       } else {
           turnSpeed = 0;
       }
-      if (Math.abs(distance)>=5) {
+
+      //Distance P control loop
+      if (Math.abs(distance)>distanceTolerance) {
+        // driveSpeed = distance*distanceKp;
           if (distance>0) {
-              driveSpeed = -0.2;
+              driveSpeed = -0.3;
           } else {
-              driveSpeed = 0.2;
+              driveSpeed = 0.3;
           }
       } else {
           driveSpeed = 0;
       }
+
       if (driveSpeed==0 && turnSpeed==0) {
           System.out.println("****ALIGNED****");
+          SmartDashboard.putBoolean("ALIGNED", true);
+
       } else {
           System.out.println("****DRIVING****"+driveSpeed);
+          SmartDashboard.putBoolean("ALIGNED", false);
       }
       Robot.driveTrain.drive(driveSpeed, turnSpeed, true);
-  } else {
-    if (Math.abs(centerX)<=0.09 && Math.abs(distance)<8) {
+  } else { //Teleop
+    if (Math.abs(centerX)<=angleTolerance && Math.abs(distance)<distanceTolerance) {
         System.out.println("****ALIGNED****");
+        SmartDashboard.putBoolean("ALIGNED", true);
+    } else {
+      SmartDashboard.putBoolean("ALIGNED", false);
     }
-    Robot.driveTrain.stop();
-}
-    
+    if (auto==true&&driveBack.get()>driveBackTime) {
+      auto = false;
+      Robot.driveTrain.stop();
+    }
+    if (OI.XBoxControllerSubsystem.getRawButtonPressed(RobotMap.CLOSE_SHOOT_BUTTON)) {
+      driveBack.start();
+      auto = true;
+    }
+    if (auto==false) {
+      double speed = (OI.XBoxControllerDriver.getTriggerAxis(Hand.kRight) - OI.XBoxControllerDriver.getTriggerAxis(Hand.kLeft)) / slowMod;
+      double turn = OI.XBoxControllerDriver.getX(Hand.kLeft) / slowMod;
+      Robot.driveTrain.drive(-speed, turn, true);
+      SmartDashboard.putNumber("Speed %", Math.abs(speed)*100);
+    } else {
+      Robot.driveTrain.drive(0.6, 0.0, true);
+    }
+    // Robot.driveTrain.stop();
   }
+}
 
   // Make this return true when this Command no longer needs to run execute()
   @Override
